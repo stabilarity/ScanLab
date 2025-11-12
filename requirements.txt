@@ -1,0 +1,9 @@
+streamlit>=1.39
+# Prefer Python 3.11 for best PyTorch/macOS MPS compatibility
+torch>=2.3
+torchvision>=0.18
+numpy>=1.26
+pillow
+scikit-learn
+matplotlib
+pydicom
