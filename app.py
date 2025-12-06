@@ -425,12 +425,12 @@ def predict_with_cam(model_dir: Path, file_bytes: bytes, filename: str):
 # ============== Streamlit UI ==============
 
 st.set_page_config(
-    page_title="ScanInsight MVP",
+    page_title="ScanLab MVP",
     page_icon="🩺",
     layout="wide",
 )
 
-st.title("🩺 ScanInsight — Minimal MVP")
+st.title("🩺 ScanLab — Minimal MVP")
 st.caption("Single question: *What is the probability of disease, and where is it?*")
 
 registry_dir = config.REGISTRY_DIR
@@ -468,14 +468,15 @@ with tabs[0]:
             with st.spinner("Running analysis..."):
                 prob, threshold, decision, orig_img, cam_img = predict_with_cam(model_dir, file_bytes, uploaded.name)
 
+            st.metric("Probability of disease", f"{prob*100:.1f}%")
+            st.markdown(f"**Decision @ {int(threshold*100)}%:** {decision}")
+            
             col1, col2 = st.columns([1,1])
             with col1:
-                st.metric("Probability of disease", f"{prob*100:.1f}%")
-                st.markdown(f"**Decision @ {int(threshold*100)}%:** {decision}")
+                st.image(orig_img, caption="Input (preprocessed size)", width=512)
             with col2:
-                st.image(orig_img, caption="Input (preprocessed size)", use_column_width=True)
-            if cam_img is not None:
-                st.image(cam_img, caption="Grad-CAM highlight (class-discriminative)", use_column_width=True)
+                if cam_img is not None:
+                    st.image(cam_img, caption="Grad-CAM highlight (class-discriminative)", width=512)
 
 with tabs[1]:
     st.subheader("Train a New Model")
@@ -540,9 +541,9 @@ with tabs[2]:
             pr_img = model_dir / "pr_curve.png"
             c1, c2 = st.columns(2)
             if roc_img.exists():
-                c1.image(str(roc_img), caption="ROC Curve", use_column_width=True)
+                c1.image(str(roc_img), caption="ROC Curve", use_container_width=True)
             if pr_img.exists():
-                c2.image(str(pr_img), caption="PR Curve", use_column_width=True)
+                c2.image(str(pr_img), caption="PR Curve", use_container_width=True)
 
             cm = np.array(val.get("confusion_matrix", [[0,0],[0,0]]))
             fig, ax = plt.subplots()
