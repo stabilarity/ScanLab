@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .drop-zone--over { border-color: #3b82f6; background: #eff6ff; }
+        #image-preview-container img { max-height: 400px; object-fit: contain; }
+        .loader { border-top-color: #3b82f6; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-900">
+
+    <nav class="sticky top-0 z-50 bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <div class="bg-blue-600 p-2 rounded-lg">
+                <i class="fas fa-microscope text-white"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight">ScanLab</h1>
+        </div>
+        <div id="health-status" class="flex items-center gap-2 text-sm font-medium px-3 py-1 rounded-full bg-slate-100 transition-colors">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-gray-500" id="status-dot"></span>
+            </span>
+            <span id="status-text">Checking System...</span>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <div class="lg:col-span-4 space-y-6">
+            
+            <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <i class="fas fa-layer-group text-blue-500"></i> Model Registry
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Select Active Model</label>
+                        <select id="model-select" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                            <option value="">Loading models...</option>
+                        </select>
+                    </div>
+                    
+                    <div id="model-details" class="hidden animate-fade-in bg-blue-50 rounded-xl p-4 border border-blue-100">
+                        <div class="grid grid-cols-2 gap-4 text-xs">
+                            <div>
+                                <p class="text-slate-500 uppercase font-bold tracking-wider">Backbone</p>
+                                <p id="detail-backbone" class="text-sm font-semibold text-blue-900">-</p>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 uppercase font-bold tracking-wider">Resolution</p>
+                                <p id="detail-size" class="text-sm font-semibold text-blue-900">-</p>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 uppercase font-bold tracking-wider">Threshold</p>
+                                <p id="detail-threshold" class="text-sm font-semibold text-blue-900">-</p>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 uppercase font-bold tracking-wider">Created</p>
+                                <p id="detail-date" class="text-sm font-semibold text-blue-900">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <i class="fas fa-cloud-upload-alt text-blue-500"></i> Input Data
+                </h2>
+                <div id="drop-zone" class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 transition-colors bg-slate-50">
+                    <input type="file" id="file-input" class="hidden" accept="image/*,.dcm">
+                    <i class="fas fa-file-image text-4xl text-slate-300 mb-3"></i>
+                    <p class="text-sm text-slate-600">Drag & drop or <span class="text-blue-600 font-semibold">browse</span></p>
+                    <p class="text-xs text-slate-400 mt-1">Supports JPG, PNG, BMP, TIFF, DICOM</p>
+                </div>
+                
+                <button id="predict-btn" disabled class="w-full mt-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2">
+                    <span>Run Inference</span>
+                    <i class="fas fa-bolt"></i>
+                </button>
+            </section>
+        </div>
+
+        <div class="lg:col-span-8">
+            <div id="empty-state" class="h-full min-h-[500px] flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-200 border-dashed">
+                <div class="bg-slate-100 p-6 rounded-full mb-4">
+                    <i class="fas fa-wave-square text-4xl text-slate-300"></i>
+                </div>
+                <p class="text-slate-500">Select a model and upload an image to start analysis</p>
+            </div>
+
+            <div id="results-view" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
+                    <div class="flex items-center gap-4">
+                        <div id="decision-badge" class="px-4 py-2 rounded-lg font-bold text-lg uppercase tracking-widest">
+                            -
+                        </div>
+                        <div>
+                            <p class="text-sm text-slate-500">Probability Score</p>
+                            <div class="flex items-center gap-2">
+                                <div class="w-32 h-3 bg-slate-100 rounded-full overflow-hidden">
+                                    <div id="prob-bar" class="h-full bg-blue-500" style="width: 0%"></div>
+                                </div>
+                                <span id="prob-text" class="font-mono font-bold">0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-slate-400 uppercase">Analysis Model</p>
+                        <p id="result-model-name" class="font-semibold text-slate-700">-</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="text-sm font-semibold text-slate-500 mb-3 uppercase tracking-wider">Input Image</h3>
+                        <div class="rounded-lg overflow-hidden bg-black flex items-center justify-center">
+                            <img id="img-input" src="" alt="Input" class="max-w-full">
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="text-sm font-semibold text-slate-500 mb-3 uppercase tracking-wider">Grad-CAM Overlay</h3>
+                        <div class="rounded-lg overflow-hidden bg-black flex items-center justify-center">
+                            <img id="img-cam" src="" alt="Grad-CAM" class="max-w-full">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="inference-loader" class="hidden h-full flex flex-col items-center justify-center py-20">
+                <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+                <h3 class="text-xl font-bold text-slate-700">Analyzing Scan...</h3>
+                <p class="text-slate-500">Generating Class Activation Maps</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Configuration - Set your API Base URL here
+        const API_BASE = "http://127.0.0.1:8000"; 
+
+        // State Management
+        let state = {
+            models: [],
+            selectedModel: null,
+            file: null,
+            isProcessing: false
+        };
+
+        // DOM Elements
+        const modelSelect = document.getElementById('model-select');
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const predictBtn = document.getElementById('predict-btn');
+        const resultsView = document.getElementById('results-view');
+        const emptyState = document.getElementById('empty-state');
+        const loader = document.getElementById('inference-loader');
+
+        // Initial Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            checkHealth();
+            fetchModels();
+            setInterval(checkHealth, 30000); // Check health every 30s
+        });
+
+        // --- API Functions ---
+
+        async function checkHealth() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                const data = await res.json();
+                const dot = document.getElementById('status-dot');
+                const text = document.getElementById('status-text');
+                
+                if (data.status === 'ok') {
+                    dot.className = 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500';
+                    text.innerText = 'System Online';
+                    text.parentElement.classList.replace('bg-slate-100', 'bg-emerald-50');
+                }
+            } catch (err) {
+                document.getElementById('status-dot').className = 'relative inline-flex rounded-full h-2 w-2 bg-red-500';
+                document.getElementById('status-text').innerText = 'System Offline';
+            }
+        }
+
+        async function fetchModels() {
+            try {
+                const res = await fetch(`${API_BASE}/models`);
+                state.models = await res.json();
+                
+                modelSelect.innerHTML = '<option value="">Choose a model...</option>' + 
+                    state.models.map(m => `<option value="${m}">${m}</option>`).join('');
+            } catch (err) {
+                console.error("Failed to load models", err);
+            }
+        }
+
+        async function fetchModelDetails(name) {
+            if (!name) return;
+            try {
+                const res = await fetch(`${API_BASE}/models/${name}`);
+                const info = await res.json();
+                
+                document.getElementById('detail-backbone').innerText = info.backbone || 'N/A';
+                document.getElementById('detail-size').innerText = info.image_size ? `${info.image_size}px` : 'N/A';
+                document.getElementById('detail-threshold').innerText = info.threshold;
+                document.getElementById('detail-date').innerText = new Date(info.created_at).toLocaleDateString();
+                document.getElementById('model-details').classList.remove('hidden');
+            } catch (err) {
+                console.error("Error loading model info", err);
+            }
+        }
+
+        async function runInference() {
+            if (!state.file || !state.selectedModel) return;
+
+            // UI State
+            state.isProcessing = true;
+            updateUI();
+
+            const formData = new FormData();
+            formData.append('file', state.file);
+
+            try {
+                const url = `${API_BASE}/predict?model_name=${state.selectedModel}&include_images=true`;
+                const res = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error("Inference failed");
+
+                const data = await res.json();
+                displayResults(data);
+            } catch (err) {
+                alert("Error during inference: " + err.message);
+            } finally {
+                state.isProcessing = false;
+                updateUI();
+            }
+        }
+
+        // --- Helper Functions ---
+
+        function updateUI() {
+            predictBtn.disabled = !state.file || !state.selectedModel || state.isProcessing;
+            
+            if (state.isProcessing) {
+                resultsView.classList.add('hidden');
+                emptyState.classList.add('hidden');
+                loader.classList.remove('hidden');
+            } else if (!resultsView.classList.contains('hidden')) {
+                loader.classList.add('hidden');
+            } else {
+                loader.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            }
+        }
+
+        function displayResults(data) {
+            emptyState.classList.add('hidden');
+            loader.classList.add('hidden');
+            resultsView.classList.remove('hidden');
+
+            // Set text & scores
+            document.getElementById('result-model-name').innerText = data.model;
+            document.getElementById('prob-text').innerText = (data.probability * 100).toFixed(2) + '%';
+            document.getElementById('prob-bar').style.width = (data.probability * 100) + '%';
+            
+            const badge = document.getElementById('decision-badge');
+            badge.innerText = data.decision;
+            
+            // Visual indicators for decision
+            if(data.probability >= data.threshold) {
+                badge.className = "px-4 py-2 rounded-lg font-bold text-lg uppercase tracking-widest bg-red-100 text-red-700 border border-red-200";
+            } else {
+                badge.className = "px-4 py-2 rounded-lg font-bold text-lg uppercase tracking-widest bg-emerald-100 text-emerald-700 border border-emerald-200";
+            }
+
+            // Set images
+            document.getElementById('img-input').src = `data:image/jpeg;base64,${data.input_image_b64}`;
+            document.getElementById('img-cam').src = `data:image/jpeg;base64,${data.cam_overlay_b64}`;
+        }
+
+        // --- Event Listeners ---
+
+        modelSelect.addEventListener('change', (e) => {
+            state.selectedModel = e.target.value;
+            fetchModelDetails(state.selectedModel);
+            updateUI();
+        });
+
+        // Drop Zone Handlers
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                state.file = e.target.files[0];
+                dropZone.querySelector('p').innerText = state.file.name;
+                dropZone.classList.add('bg-blue-50', 'border-blue-300');
+                updateUI();
+            }
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drop-zone--over');
+        });
+
+        ['dragleave', 'dragend'].forEach(type => {
+            dropZone.addEventListener(type, () => {
+                dropZone.classList.remove('drop-zone--over');
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length) {
+                state.file = e.dataTransfer.files[0];
+                dropZone.querySelector('p').innerText = state.file.name;
+                updateUI();
+            }
+            dropZone.classList.remove('drop-zone--over');
+        });
+
+        predictBtn.addEventListener('click', runInference);
+
+    </script>
+</body>
+</html>
