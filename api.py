@@ -1,5 +1,23 @@
 #!/usr/bin/env python3
 # api.py
+"""
+ScanLab Inference API
+
+REST API for running inference with trained ScanLab medical imaging models.
+Provides endpoints for single and batch prediction, model management,
+and usage analytics for cost-benefit tracking.
+
+Features:
+- Single image prediction with Grad-CAM explainability
+- Batch prediction for high-volume facilities (efficiency optimization)
+- Usage analytics for ROI/cost-benefit analysis
+- Ukrainian and English localization support
+
+Author: Oleh Ivchenko
+License: MIT
+Version: 0.2.0
+"""
+
 import io
 import os
 import json
@@ -7,6 +25,7 @@ import base64
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple, List, cast
+from collections import defaultdict
 
 import numpy as np
 from PIL import Image
@@ -37,7 +56,12 @@ except Exception:
         IMAGE_SIZE = 224
         THRESHOLD = 0.5
         SEED = 42
+        ANALYTICS_ENABLED = False
+        ANALYTICS_LOG_PATH = "analytics.jsonl"
     config = _Cfg()
+
+# ---- Analytics tracking for cost-benefit analysis ----
+_analytics_cache: dict = defaultdict(int)
 
 np.random.seed(getattr(config, "SEED", 42))
 torch.manual_seed(getattr(config, "SEED", 42))
@@ -315,6 +339,181 @@ async def predict(
         input_image_b64=input_b64 if include_images else None,
         cam_overlay_b64=cam_b64 if include_images else None,
     )
+
+# =========================================================
+# Batch Prediction Endpoint (for high-volume facilities)
+# =========================================================
+
+class BatchPredictItem(BaseModel):
+    """Single item result in batch prediction response."""
+    filename: str
+    probability: float
+    threshold: float
+    decision: str
+    decision_uk: str  # Ukrainian localization
+    error: Optional[str] = None
+
+class BatchPredictResponse(BaseModel):
+    """Response model for batch prediction endpoint."""
+    model: str
+    total_files: int
+    successful: int
+    failed: int
+    results: List[BatchPredictItem]
+    processing_time_ms: float
+
+@app.post("/predict/batch", response_model=BatchPredictResponse, tags=["inference"])
+async def predict_batch(
+    files: List[UploadFile] = File(..., description="Multiple scan images for batch analysis"),
+    model_name: str = Query(..., description="Name of model in registry"),
+):
+    """
+    Batch prediction endpoint for high-volume facilities.
+    
+    Processes multiple images in a single request for improved efficiency.
+    Designed for Ukrainian hospital workflows with high imaging volumes
+    (15,000+ studies annually) as recommended by cost-benefit analysis.
+    
+    Author: Oleh Ivchenko
+    """
+    import time
+    start_time = time.time()
+    
+    models_list = list_models(REGISTRY_DIR)
+    if model_name not in models_list:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Model '{model_name}' not found. Available: {models_list}",
+        )
+    
+    model_dir = Path(REGISTRY_DIR) / model_name
+    results: List[BatchPredictItem] = []
+    successful = 0
+    failed = 0
+    
+    # Ukrainian decision strings
+    decision_map_uk = {
+        "Likely disease": "Ймовірне захворювання",
+        "Unlikely disease": "Захворювання малоймовірне"
+    }
+    
+    for file in files:
+        try:
+            file_bytes = await file.read()
+            if not file_bytes:
+                results.append(BatchPredictItem(
+                    filename=file.filename or "unknown",
+                    probability=0.0,
+                    threshold=0.5,
+                    decision="Error",
+                    decision_uk="Помилка",
+                    error="Empty file"
+                ))
+                failed += 1
+                continue
+            
+            prob, threshold, decision, _, _ = predict_with_cam(
+                model_dir, file_bytes, file.filename or "uploaded-scan"
+            )
+            
+            results.append(BatchPredictItem(
+                filename=file.filename or "unknown",
+                probability=float(prob),
+                threshold=float(threshold),
+                decision=decision,
+                decision_uk=decision_map_uk.get(decision, decision)
+            ))
+            successful += 1
+            
+            # Track analytics
+            if getattr(config, "ANALYTICS_ENABLED", False):
+                _analytics_cache["total_predictions"] += 1
+                _analytics_cache["batch_predictions"] += 1
+                
+        except Exception as e:
+            results.append(BatchPredictItem(
+                filename=file.filename or "unknown",
+                probability=0.0,
+                threshold=0.5,
+                decision="Error",
+                decision_uk="Помилка",
+                error=str(e)
+            ))
+            failed += 1
+    
+    processing_time_ms = (time.time() - start_time) * 1000
+    
+    return BatchPredictResponse(
+        model=model_name,
+        total_files=len(files),
+        successful=successful,
+        failed=failed,
+        results=results,
+        processing_time_ms=round(processing_time_ms, 2)
+    )
+
+
+# =========================================================
+# Analytics Endpoint (for cost-benefit tracking)
+# =========================================================
+
+class AnalyticsResponse(BaseModel):
+    """Usage analytics for ROI and cost-benefit analysis."""
+    total_predictions: int
+    single_predictions: int
+    batch_predictions: int
+    models_in_registry: int
+    uptime_info: str
+    timestamp: str
+
+@app.get("/analytics", response_model=AnalyticsResponse, tags=["system"])
+def get_analytics():
+    """
+    Get usage analytics for cost-benefit tracking.
+    
+    Provides metrics useful for calculating ROI as described in
+    'Cost-Benefit Analysis of Medical AI for Ukrainian Hospitals'.
+    Tracks prediction counts to estimate workload offloading and
+    efficiency gains.
+    
+    Author: Oleh Ivchenko
+    """
+    models_list = list_models(REGISTRY_DIR)
+    
+    total = _analytics_cache.get("total_predictions", 0)
+    batch = _analytics_cache.get("batch_predictions", 0)
+    
+    return AnalyticsResponse(
+        total_predictions=total,
+        single_predictions=total - batch,
+        batch_predictions=batch,
+        models_in_registry=len(models_list),
+        uptime_info="Available since API start",
+        timestamp=datetime.utcnow().isoformat() + "Z"
+    )
+
+
+# =========================================================
+# Localization Helper Endpoint
+# =========================================================
+
+@app.get("/localization/{lang}", tags=["system"])
+def get_localization(lang: str = "uk"):
+    """
+    Get UI strings for specified language.
+    
+    Supports Ukrainian ('uk') and English ('en') for bilingual
+    healthcare facility interfaces.
+    
+    Author: Oleh Ivchenko
+    """
+    try:
+        from config import UI_STRINGS
+        strings = UI_STRINGS.get(lang, UI_STRINGS.get("en", {}))
+        return {"language": lang, "strings": strings}
+    except ImportError:
+        return {"language": lang, "strings": {}, "error": "Localization not configured"}
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -144,8 +144,8 @@
     </main>
 
     <script>
-        // Configuration - Set your API Base URL here
-        const API_BASE = "http://127.0.0.1:8000"; 
+        // Configuration - Dynamically use current host IP
+        const API_BASE = `http://${window.location.hostname}:8000`; 
 
         // State Management
         let state = {
