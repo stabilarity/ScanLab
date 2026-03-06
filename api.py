@@ -15,7 +15,7 @@ Features:
 
 Author: Oleh Ivchenko
 License: MIT
-Version: 0.2.0
+Version: 0.2.1
 """
 
 import io
@@ -62,6 +62,7 @@ except Exception:
 
 # ---- Analytics tracking for cost-benefit analysis ----
 _analytics_cache: dict = defaultdict(int)
+_api_start_time: float = __import__("time").time()
 
 np.random.seed(getattr(config, "SEED", 42))
 torch.manual_seed(getattr(config, "SEED", 42))
@@ -488,7 +489,7 @@ def get_analytics():
         single_predictions=total - batch,
         batch_predictions=batch,
         models_in_registry=len(models_list),
-        uptime_info="Available since API start",
+        uptime_info=f"Running for {int((__import__('time').time() - _api_start_time) / 60)}m {int((__import__('time').time() - _api_start_time) % 60)}s since start",
         timestamp=datetime.utcnow().isoformat() + "Z"
     )
 
