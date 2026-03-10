@@ -262,6 +262,7 @@ app = FastAPI(
         "Swagger UI available at `/docs`, OpenAPI JSON at `/openapi.json`."
     ),
     version="0.1.0",
+    root_path="/scanlab-v1-api",
 )
 
 # CORS (adjust as needed)
