@@ -1,0 +1,61 @@
+{
+  "records": [
+    {
+      "sketch_number": "202603-001",
+      "category": "Military symbols",
+      "type": "Coat of arms",
+      "body_location": "Upper body",
+      "body_part": "Left forearm",
+      "date_added": "2026-03-09",
+      "description": "Ukrainian trident (tryzub) with military unit insignia, heavy black linework, approximately 8x12cm",
+      "contact": "Contact ScanLab admin",
+      "fingerprint": "a7f3c2e19b4d",
+      "features": {
+        "dominant_colors": [[15, 15, 15], [45, 42, 38], [180, 175, 168], [220, 215, 210], [95, 90, 82]],
+        "edge_density": 0.42,
+        "texture_complexity": 58.3,
+        "style": "linework",
+        "body_region_estimate": "forearm"
+      },
+      "linked_sketches": ["202603-002"]
+    },
+    {
+      "sketch_number": "202603-002",
+      "category": "Portraits",
+      "type": "Memorial portrait",
+      "body_location": "Upper body",
+      "body_part": "Upper back",
+      "date_added": "2026-03-09",
+      "description": "Watercolor-style floral memorial design with red and blue tones, portrait surrounded by poppies",
+      "contact": "Contact ScanLab admin",
+      "fingerprint": "d4e8b1a06c72",
+      "features": {
+        "dominant_colors": [[190, 45, 50], [40, 80, 160], [230, 220, 200], [120, 55, 70], [60, 110, 140]],
+        "edge_density": 0.18,
+        "texture_complexity": 42.7,
+        "style": "watercolor",
+        "body_region_estimate": "back"
+      },
+      "linked_sketches": ["202603-001"]
+    },
+    {
+      "sketch_number": "202603-003",
+      "category": "Texts",
+      "type": "Inscription",
+      "body_location": "Upper extremity",
+      "body_part": "Right wrist",
+      "date_added": "2026-03-09",
+      "description": "Geometric mandala with Cyrillic text inscription, fine detail black ink, approximately 5x5cm",
+      "contact": "Contact ScanLab admin",
+      "fingerprint": "f9c1d5e38a4b",
+      "features": {
+        "dominant_colors": [[10, 10, 10], [60, 58, 55], [200, 195, 190], [140, 135, 128], [240, 238, 235]],
+        "edge_density": 0.67,
+        "texture_complexity": 71.2,
+        "style": "geometric",
+        "body_region_estimate": "wrist"
+      },
+      "linked_sketches": []
+    }
+  ]
+}

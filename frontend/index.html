@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ScanLab v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f0f11;--surface:#18181b;--surface2:#1f1f23;--surface3:#27272a;
+  --border:#2e2e33;--border2:#3f3f46;
+  --text:#fafafa;--text2:#a1a1aa;--text3:#71717a;
+  --accent:#6366f1;--accent2:#818cf8;--accent-dim:rgba(99,102,241,.15);
+  --green:#22c55e;--green-dim:rgba(34,197,94,.12);
+  --red:#ef4444;--red-dim:rgba(239,68,68,.12);
+  --amber:#f59e0b;
+  --radius:12px;--radius-sm:8px;--radius-xs:6px;
+  --font:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
+
+/* ── APP SHELL ── */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+/* ── TOP BAR ── */
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:0 16px;height:52px;flex-shrink:0;
+  background:var(--surface);border-bottom:1px solid var(--border);
+}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.logo-icon{width:28px;height:28px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.logo-text{font-size:15px;font-weight:700;letter-spacing:-.3px;color:var(--text)}
+.logo-text span{color:var(--accent2);font-weight:300}
+.topbar-spacer{flex:1}
+.status-pill{
+  display:flex;align-items:center;gap:6px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:20px;padding:4px 10px;font-size:11px;color:var(--text2);
+}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0}
+.status-dot.online{background:var(--green);box-shadow:0 0 6px var(--green)}
+.lang-btn{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text2);font-size:11px;padding:5px 10px;
+  border-radius:var(--radius-xs);cursor:pointer;font-family:var(--font);
+  transition:border-color .15s;
+}
+.lang-btn:hover{border-color:var(--border2);color:var(--text)}
+
+/* ── NAV TABS ── */
+.nav{
+  display:flex;overflow-x:auto;scrollbar-width:none;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 16px;gap:2px;flex-shrink:0;
+}
+.nav::-webkit-scrollbar{display:none}
+.nav-tab{
+  flex:0 0 auto;padding:10px 14px;
+  font-size:12px;font-weight:500;color:var(--text3);
+  cursor:pointer;border-bottom:2px solid transparent;
+  margin-bottom:-1px;white-space:nowrap;transition:color .15s;
+  display:flex;align-items:center;gap:6px;
+}
+.nav-tab:hover{color:var(--text2)}
+.nav-tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+.nav-tab .tab-icon{font-size:13px}
+
+/* ── SCROLL AREA ── */
+.scroll-area{flex:1;overflow-y:auto;overscroll-behavior:contain}
+.scroll-area::-webkit-scrollbar{width:4px}
+.scroll-area::-webkit-scrollbar-track{background:transparent}
+.scroll-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── PAGE PADDING ── */
+.page{padding:16px;max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+
+/* ── TAB PAGES ── */
+.tab-page{display:none}
+.tab-page.active{display:block}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.card-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.8px}
+.card-body{padding:14px}
+
+/* ── SECTION LABEL ── */
+.slabel{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+
+/* ── MODEL GRID ── */
+.model-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mc{
+  background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;
+  position:relative;transition:border-color .15s,background .15s;
+}
+.mc:hover{border-color:var(--border2);background:var(--surface3)}
+.mc.checked{border-color:var(--accent);background:var(--accent-dim)}
+.mc-name{font-size:12px;font-weight:600;line-height:1.3;padding-right:36px;margin-bottom:2px}
+.mc-sub{font-size:10px;color:var(--text3)}
+.mc-auc{
+  position:absolute;top:8px;right:10px;
+  font-size:10px;font-weight:700;color:var(--green);
+  font-family:var(--mono);
+}
+.mc-tick{
+  position:absolute;bottom:8px;right:10px;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--accent);display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:#fff;opacity:0;transition:opacity .15s;
+}
+.mc.checked .mc-tick{opacity:1}
+
+.select-hint{font-size:11px;color:var(--text3);text-align:center;padding:4px 0}
+
+/* ── DROP ZONE ── */
+.drop-zone{
+  border:1.5px dashed var(--border2);border-radius:var(--radius);
+  padding:28px 16px;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;position:relative;
+  background:var(--surface);
+}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:var(--accent-dim)}
+.drop-icon{font-size:28px;margin-bottom:8px;line-height:1}
+.drop-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.drop-sub{font-size:11px;color:var(--text3)}
+.drop-btn{
+  display:inline-flex;align-items:center;gap:6px;margin-top:12px;
+  background:var(--accent);color:#fff;font-family:var(--font);
+  font-size:12px;font-weight:600;padding:7px 16px;
+  border-radius:var(--radius-xs);border:none;cursor:pointer;
+  transition:opacity .15s;
+}
+.drop-btn:hover{opacity:.9}
+#preview-img{max-width:100%;max-height:140px;margin-top:12px;border-radius:var(--radius-xs);border:1px solid var(--border);display:none;object-fit:contain}
+
+/* ── RUN BUTTON ── */
+.run-btn{
+  width:100%;padding:12px;
+  background:var(--accent);color:#fff;
+  font-family:var(--font);font-size:14px;font-weight:600;
+  border:none;border-radius:var(--radius-sm);cursor:pointer;
+  transition:opacity .15s,transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.run-btn:hover:not(:disabled){opacity:.9}
+.run-btn:active:not(:disabled){transform:scale(.99)}
+.run-btn:disabled{background:var(--surface3);color:var(--text3);cursor:not-allowed}
+
+/* ── LOADING ── */
+.loading-wrap{display:none;text-align:center;padding:40px 0}
+.loading-wrap.active{display:block}
+.spinner{width:36px;height:36px;border:2.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-label{font-size:14px;font-weight:500;margin-top:12px;color:var(--text2)}
+.loading-model{font-size:11px;color:var(--text3);margin-top:4px;font-family:var(--mono)}
+
+/* ── RESULTS ── */
+.results-wrap{display:none;display:flex;flex-direction:column;gap:12px}
+.results-wrap{display:none}
+
+/* verdict banner */
+.verdict-banner{
+  border-radius:var(--radius);padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+}
+.verdict-banner.positive{background:var(--red-dim);border:1px solid rgba(239,68,68,.3)}
+.verdict-banner.negative{background:var(--green-dim);border:1px solid rgba(34,197,94,.3)}
+.verdict-icon{font-size:24px;flex-shrink:0}
+.verdict-text{}
+.verdict-pred{font-size:16px;font-weight:700}
+.verdict-sub{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* ── CANVAS COMPOSITE ── */
+.canvas-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.canvas-wrap{position:relative;background:#000;line-height:0}
+#composite-canvas{width:100%;display:block;aspect-ratio:1}
+.canvas-toolbar{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;
+  border-top:1px solid var(--border);background:var(--surface2);
+}
+.canvas-label{font-size:11px;color:var(--text3);flex:1}
+.toolbar-btn{
+  background:var(--surface3);border:1px solid var(--border);
+  color:var(--text2);font-size:11px;padding:4px 10px;border-radius:var(--radius-xs);
+  cursor:pointer;transition:border-color .15s;font-family:var(--font);
+}
+.toolbar-btn:hover{border-color:var(--border2);color:var(--text)}
+
+/* ── LAYERS ── */
+.layers-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.layers-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)}
+.layers-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.8px}
+.reset-btn{font-size:10px;color:var(--text3);cursor:pointer;background:none;border:none;font-family:var(--font);padding:2px 0}
+.reset-btn:hover{color:var(--accent2)}
+.layer-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.layer-row:last-child{border-bottom:none}
+.layer-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.layer-info{flex:1;min-width:0}
+.layer-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.layer-pred{font-size:10px;color:var(--text3);margin-top:1px;font-family:var(--mono)}
+.layer-slider-wrap{display:flex;align-items:center;gap:6px;margin-top:5px}
+.layer-slider{
+  flex:1;-webkit-appearance:none;height:3px;
+  border-radius:3px;outline:none;cursor:pointer;
+  background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--pct,50%),var(--border2) var(--pct,50%));
+}
+.layer-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--text);border-radius:50%;cursor:pointer;border:2px solid var(--surface)}
+.layer-pct{font-size:10px;color:var(--text3);min-width:28px;text-align:right;font-family:var(--mono)}
+.vis-btn{font-size:14px;cursor:pointer;opacity:1;transition:opacity .15s;user-select:none;flex-shrink:0}
+.vis-btn.off{opacity:.25}
+
+/* ── MODEL DETAIL TABS ── */
+.model-tabs{display:flex;overflow-x:auto;scrollbar-width:none;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;gap:3px}
+.model-tabs::-webkit-scrollbar{display:none}
+.mtab{
+  flex:0 0 auto;padding:6px 12px;border-radius:var(--radius-xs);
+  font-size:11px;font-weight:500;color:var(--text3);cursor:pointer;
+  white-space:nowrap;transition:all .15s;text-align:center;
+}
+.mtab:hover{color:var(--text2)}
+.mtab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.mtab .mt-model{display:block;font-size:9px;color:inherit;opacity:.7;margin-bottom:1px}
+.mtab .mt-pred{display:block;font-size:11px;font-weight:600}
+
+/* ── DETAIL CARD ── */
+.detail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;animation:fadein .25s}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.conf-block{padding:16px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border)}
+.conf-ring-wrap{position:relative;flex-shrink:0}
+.conf-ring-wrap svg{display:block}
+.conf-ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--mono)}
+.conf-ring-pct{font-size:18px;font-weight:700;line-height:1}
+.conf-ring-sub{font-size:8px;color:var(--text3);margin-top:1px}
+.conf-meta{}
+.conf-pred{font-size:15px;font-weight:700;margin-bottom:4px}
+.conf-unc{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.conf-icd{display:inline-block;margin-top:6px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-xs);padding:2px 8px;font-size:10px;font-family:var(--mono);color:var(--accent2)}
+
+.clinical-block{padding:12px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:12px;line-height:1.65;color:var(--text2)}
+.clinical-block strong{color:var(--text);font-weight:600}
+
+.features-block{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:5px}
+.feat-tag{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-xs);font-size:10px;padding:2px 8px;color:var(--text2)}
+
+.prob-block{padding:12px 14px}
+.prob-block .block-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+
+/* ── ACTION ROW ── */
+.action-row{display:flex;gap:8px}
+.action-btn{
+  flex:1;padding:10px;border-radius:var(--radius-sm);
+  font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;
+  transition:opacity .15s;
+}
+.action-ghost{background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+.action-ghost:hover{border-color:var(--border2);color:var(--text)}
+.action-primary{background:var(--accent);color:#fff;border:none}
+.action-primary:hover{opacity:.9}
+
+/* ── CATALOGUE ── */
+.mdc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.mdc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.mdc-name{font-size:14px;font-weight:700}
+.mdc-ver{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+.mdc-desc{font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.55}
+.metrics-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.metric-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;text-align:center;min-width:64px}
+.metric-val{font-size:15px;font-weight:700;color:var(--green);font-family:var(--mono)}
+.metric-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.mdc-classes{font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:10px}
+.use-btn{background:var(--accent);color:#fff;border:none;font-family:var(--font);font-size:12px;font-weight:600;padding:7px 14px;border-radius:var(--radius-xs);cursor:pointer}
+.use-btn:hover{opacity:.9}
+
+/* ── BATCH ── */
+.batch-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;background:var(--surface)}
+.batch-zone:hover{border-color:var(--accent);background:var(--accent-dim)}
+.progress-track{background:var(--surface2);border-radius:4px;height:6px;margin:12px 0;overflow:hidden;border:1px solid var(--border)}
+.progress-fill{height:100%;background:var(--accent);transition:width .3s;border-radius:4px}
+.batch-table{width:100%;border-collapse:collapse;font-size:12px}
+.batch-table th{background:var(--surface2);color:var(--text2);padding:7px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border)}
+.batch-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2)}
+.batch-table tr:last-child td{border-bottom:none}
+.batch-table tr:hover td{background:var(--surface2)}
+.export-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-family:var(--font);font-size:11px;font-weight:600;padding:7px 14px;border-radius:var(--radius-xs);cursor:pointer;margin-top:10px}
+.export-btn:hover{border-color:var(--border2);color:var(--text)}
+
+/* ── ANALYTICS ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center}
+.stat-num{font-size:26px;font-weight:700;font-family:var(--mono);color:var(--accent2)}
+.stat-lbl{font-size:10px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:.8px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px}
+.chart-card h4{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+
+/* ── ABOUT ── */
+.about-body{font-size:13px;line-height:1.75;color:var(--text2)}
+.about-body h3{font-size:14px;font-weight:700;color:var(--text);margin:16px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.about-body p{margin-bottom:10px}
+.about-body ul{margin-left:18px;margin-bottom:10px}
+.about-body li{margin:4px 0}
+.about-body a{color:var(--accent2);text-decoration:none}
+.about-body a:hover{text-decoration:underline}
+.disclaimer{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:11px;color:var(--text3);margin-top:12px}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-icon{font-size:32px;margin-bottom:8px;opacity:.5}
+.empty-text{font-size:13px}
+
+/* ── TINTS per model ── */
+.tint-0{background:#6366f1}.tint-1{background:#06b6d4}.tint-2{background:#22c55e}.tint-3{background:#f59e0b}.tint-4{background:#ec4899}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <a class="logo" href="/scanlab/">
+    <div class="logo-icon">🩻</div>
+    <div class="logo-text">Scan<span>Lab</span></div>
+  </a>
+  <div class="topbar-spacer"></div>
+  <div class="status-pill">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Connecting</span>
+  </div>
+  <button class="lang-btn" onclick="toggleLang()" id="lang-btn">🇺🇦</button>
+</div>
+
+<!-- NAV -->
+<div class="nav" id="nav">
+  <div class="nav-tab active" data-tab="diagnose"><span class="tab-icon">🔬</span>Diagnose</div>
+  <div class="nav-tab" data-tab="models"><span class="tab-icon">📋</span>Models</div>
+  <div class="nav-tab" data-tab="batch"><span class="tab-icon">📁</span>Batch</div>
+  <div class="nav-tab" data-tab="analytics"><span class="tab-icon">📊</span>Analytics</div>
+  <div class="nav-tab" data-tab="tattoo"><span class="tab-icon">ID</span>Tattoo ID</div>
+  <div class="nav-tab" data-tab="about"><span class="tab-icon">ℹ</span>About</div>
+</div>
+
+<!-- SCROLLABLE CONTENT -->
+<div class="scroll-area">
+
+<!-- ═══ DIAGNOSE ═══ -->
+<div class="tab-page active" id="tab-diagnose">
+<div class="page">
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">Select Models</span><span id="select-count" style="font-size:11px;color:var(--text3)">None selected</span></div>
+    <div class="card-body" style="padding:12px">
+      <div class="model-grid" id="model-grid"></div>
+    </div>
+  </div>
+
+  <div class="drop-zone" id="drop-zone">
+    <div class="drop-icon">🩻</div>
+    <div class="drop-title" id="drop-title">Drop specimen here</div>
+    <div class="drop-sub" id="drop-sub">X-ray · MRI · Dermoscopy — JPG or PNG</div>
+    <button class="drop-btn" onclick="document.getElementById('file-input').click()">
+      <span>📂</span><span id="drop-btn-lbl">Choose file</span>
+    </button>
+    <input id="file-input" type="file" accept="image/*" hidden>
+    <img id="preview-img" alt="preview">
+  </div>
+
+  <!-- Sample images -->
+  <div class="card" id="sample-card" style="display:none">
+    <div class="card-head"><span class="card-title">Load Sample Image</span></div>
+    <div class="card-body" id="sample-buttons" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+  </div>
+
+  <button class="run-btn" id="run-btn" disabled onclick="runAnalysis()">
+    <span>⚡</span><span id="run-label">Run Analysis</span>
+  </button>
+
+  <div class="loading-wrap" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-label" id="loading-label">Analyzing…</div>
+    <div class="loading-model" id="loading-model"></div>
+  </div>
+
+  <div class="results-wrap" id="results-wrap">
+
+    <div class="verdict-banner" id="verdict-banner">
+      <div class="verdict-icon" id="verdict-icon"></div>
+      <div class="verdict-text">
+        <div class="verdict-pred" id="verdict-pred"></div>
+        <div class="verdict-sub" id="verdict-sub"></div>
+      </div>
+    </div>
+
+    <div class="canvas-card">
+      <div class="canvas-wrap"><canvas id="composite-canvas"></canvas></div>
+      <div class="canvas-toolbar">
+        <span class="canvas-label" id="canvas-label">Composite activation map</span>
+        <button class="toolbar-btn" onclick="resetLayerOpacities()">↺ Reset</button>
+      </div>
+    </div>
+
+    <div class="layers-card">
+      <div class="layers-head">
+        <span class="layers-title">Activation Layers</span>
+        <button class="reset-btn" onclick="resetLayerOpacities()">Reset to confidence</button>
+      </div>
+      <div id="layer-controls"></div>
+    </div>
+
+    <div class="model-tabs" id="model-tabs"></div>
+    <div id="result-detail"></div>
+
+    <div class="action-row">
+      <button class="action-btn action-ghost" onclick="printReport()">🖨 Print</button>
+      <button class="action-btn action-primary" onclick="resetForm()">New scan →</button>
+    </div>
+
+  </div><!-- /results -->
+</div></div>
+
+<!-- ═══ MODELS ═══ -->
+<div class="tab-page" id="tab-models">
+<div class="page">
+  <div id="model-detail-grid"></div>
+</div></div>
+
+<!-- ═══ BATCH ═══ -->
+<div class="tab-page" id="tab-batch">
+<div class="page">
+  <div class="batch-zone" onclick="document.getElementById('batch-input').click()">
+    <div style="font-size:24px;margin-bottom:6px">📁</div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:3px">Select multiple images</div>
+    <div style="font-size:11px;color:var(--text3)">Uses first selected model</div>
+    <input id="batch-input" type="file" accept="image/*" multiple onchange="handleBatch(event)" hidden>
+  </div>
+  <div id="batch-progress" style="display:none">
+    <div class="progress-track"><div class="progress-fill" id="batch-fill"></div></div>
+    <div id="batch-status" style="font-size:11px;color:var(--text3)"></div>
+  </div>
+  <div id="batch-results" style="display:none">
+    <div style="overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--border)">
+      <table class="batch-table">
+        <thead><tr><th>File</th><th>Prediction</th><th>Conf</th><th>ICD-10</th></tr></thead>
+        <tbody id="batch-tbody"></tbody>
+      </table>
+    </div>
+    <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+</div></div>
+
+<!-- ═══ ANALYTICS ═══ -->
+<div class="tab-page" id="tab-analytics">
+<div class="page">
+  <div class="stat-grid" id="stat-grid">
+    <div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Loading…</div></div>
+  </div>
+  <div class="chart-card" style="margin-top:8px"><h4>Predictions by Model</h4><canvas id="chart-model" height="160"></canvas></div>
+  <div class="chart-card"><h4>Avg Processing Time</h4><canvas id="chart-time" height="120"></canvas></div>
+</div></div>
+
+<!-- ═══ TATTOO ID ═══ -->
+<style>
+.tattoo-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:900px){.tattoo-grid{grid-template-columns:1fr}}
+.tattoo-swatch{width:40px;height:40px;border:1px solid #ccc;display:inline-block;border-radius:0}
+.tattoo-badge{display:inline-block;background:#000;color:#fff;font-size:10px;padding:2px 8px;font-weight:600;border-radius:0}
+.tattoo-table{width:100%;border-collapse:collapse;font-size:12px}
+.tattoo-table td,.tattoo-table th{border:1px solid #ccc;padding:5px 8px;text-align:left}
+.tattoo-table th{background:#f5f5f5;font-weight:600}
+.tattoo-match-card{border:1px solid #ccc;padding:12px;margin-bottom:8px;border-radius:0}
+.tattoo-sim-bar{background:#fff;border:1px solid #ccc;height:10px;width:100%;margin:6px 0;border-radius:0}
+.tattoo-sim-fill{background:#000;height:100%;border-radius:0}
+.tattoo-confidence{font-size:12px;font-weight:600;padding:6px 10px;border:1px solid #000;margin-top:10px;text-align:center;border-radius:0}
+.tattoo-registry-card{border:1px solid #ccc;padding:10px;margin-bottom:6px;border-radius:0}
+.tattoo-linked-badge{display:inline-block;background:#000;color:#fff;font-size:9px;padding:1px 6px;margin-left:6px;border-radius:0}
+#tattoo-image-stats{display:none}
+#tattoo-image-stats img{max-width:100%;max-height:200px;border:1px solid #ccc;object-fit:contain;display:block;border-radius:0}
+.tattoo-slider-wrap{margin:10px 0}
+.tattoo-slider-wrap input[type=range]{width:100%;accent-color:#000}
+.tattoo-fingerprint{font-family:var(--mono);font-size:11px;color:#000;background:#f5f5f5;border:1px solid #ccc;padding:4px 8px;display:inline-block;border-radius:0}
+</style>
+<div class="tab-page" id="tab-tattoo">
+<div class="page">
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-head"><span class="card-title">Tattoo-Based Patient Identification</span></div>
+    <div class="card-body">
+      <div style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:8px">
+        Emergency patient identification via distinctive body markings. Upload a photo of a tattoo or distinguishing mark to search the Stabilarity voluntary registry. Automated feature extraction, similarity scoring, and API access — purpose-built for clinical and emergency deployment.
+      </div>
+    </div>
+  </div>
+
+  <!-- 3-column analysis grid -->
+  <div class="tattoo-grid">
+
+    <!-- Column 1: Upload & Controls -->
+    <div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-head"><span class="card-title">Upload &amp; Controls</span></div>
+        <div class="card-body">
+          <div class="drop-zone" id="tattoo-drop-zone" style="margin-bottom:10px">
+            <div class="drop-icon">ID</div>
+            <div class="drop-title">Upload tattoo or body marking</div>
+            <div class="drop-sub">Photo of tattoo, scar, or distinguishing mark</div>
+            <button class="drop-btn" onclick="document.getElementById('tattoo-file-input').click()">Choose file</button>
+            <input id="tattoo-file-input" type="file" accept="image/*" hidden>
+          </div>
+          <button class="toolbar-btn" onclick="loadTattooSample()" style="width:100%;text-align:center;padding:8px;margin-bottom:8px">Load sample image</button>
+          <div class="tattoo-slider-wrap">
+            <label style="font-size:11px;color:var(--text2)">Min similarity: <strong id="tattoo-threshold-label">0.55</strong></label>
+            <input type="range" id="tattoo-threshold" min="0.5" max="1.0" step="0.05" value="0.55" oninput="document.getElementById('tattoo-threshold-label').textContent=parseFloat(this.value).toFixed(2)">
+          </div>
+          <button class="run-btn" id="tattoo-run-btn" disabled onclick="runTattooAnalysis()" style="margin-bottom:8px;width:100%">Analyze Marking</button>
+
+          <!-- Image preview with overlay stats -->
+          <div id="tattoo-image-stats">
+            <img id="tattoo-preview" alt="preview">
+            <div id="tattoo-overlay-stats" style="margin-top:6px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 2: Feature Report -->
+    <div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-head"><span class="card-title">Feature Report</span></div>
+        <div class="card-body" id="tattoo-features-body">
+          <div style="font-size:12px;color:var(--text3)">Upload and analyze an image to view features.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 3: Search Results -->
+    <div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-head"><span class="card-title">Registry Search Results</span></div>
+        <div class="card-body" id="tattoo-matches-body">
+          <div style="font-size:12px;color:var(--text3)">Results will appear after analysis.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-wrap" id="tattoo-loading">
+    <div class="spinner"></div>
+    <div class="loading-label">Analyzing marking...</div>
+  </div>
+
+  <!-- Hidden container for results display toggle -->
+  <div id="tattoo-results" style="display:none"></div>
+
+  <!-- Download report button -->
+  <div id="tattoo-report-wrap" style="display:none;margin-bottom:12px">
+    <button class="run-btn" id="tattoo-download-report" onclick="downloadTattooReport()" style="width:100%">Download Report</button>
+  </div>
+
+  <!-- Browse Registry -->
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-head"><span class="card-title">Browse Registry</span></div>
+    <div class="card-body">
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        <select id="tattoo-filter-cat" style="font-family:var(--font);font-size:11px;padding:5px 8px;background:#fff;border:1px solid #ccc;color:#000;border-radius:0">
+          <option value="">All categories</option>
+          <option value="Texts">Texts</option>
+          <option value="Portraits">Portraits</option>
+          <option value="Military symbols">Military symbols</option>
+          <option value="Other">Other</option>
+        </select>
+        <select id="tattoo-filter-loc" style="font-family:var(--font);font-size:11px;padding:5px 8px;background:#fff;border:1px solid #ccc;color:#000;border-radius:0">
+          <option value="">All body locations</option>
+          <option value="Head">Head</option>
+          <option value="Upper body">Upper body</option>
+          <option value="Lower body">Lower body</option>
+          <option value="Upper extremity">Upper extremity</option>
+          <option value="Lower extremity">Lower extremity</option>
+        </select>
+        <input id="tattoo-filter-search" placeholder="Search description..." style="font-family:var(--font);font-size:11px;padding:5px 8px;background:#fff;border:1px solid #ccc;color:#000;border-radius:0;flex:1;min-width:120px">
+        <button class="toolbar-btn" onclick="browseTattooRegistry()">Browse</button>
+      </div>
+      <div id="tattoo-browse-results" style="font-size:12px;color:var(--text3)">Registry contains records. Upload a photo to search by visual similarity.</div>
+    </div>
+  </div>
+
+  <!-- Disclaimers -->
+  <div class="disclaimer" style="margin-bottom:8px">
+    Privacy notice: All submissions are voluntary. Images are not stored after analysis. The registry contains only consented records with explicit authorization.
+  </div>
+  <div class="disclaimer">
+    For emergency identification purposes only. Not for surveillance. Processing of biometric data compliant with GDPR Article 9 -- explicit consent required. Emergency vital interests exception: Article 9(2)(c).
+  </div>
+
+</div></div>
+
+<!-- ═══ ABOUT ═══ -->
+<div class="tab-page" id="tab-about">
+<div class="page">
+  <div class="card"><div class="card-body">
+  <div class="about-body">
+    <h3>ScanLab v2</h3>
+    <p>Multi-model medical imaging AI platform by <strong style="color:var(--text)">Oleh Ivchenko</strong>. Part of the <a href="/category/medical-ml-diagnosis/">Medical ML Diagnosis</a> research series.</p>
+    <h3>Multi-Layer Compositor</h3>
+    <p>Run multiple models simultaneously. Each model's Grad-CAM heatmap is composited as an independent layer over the original scan. Default opacity = confidence score. Fully interactive.</p>
+    <h3>Models</h3>
+    <ul>
+      <li>ResNet-18 Pneumonia · 5,856 chest X-rays</li>
+      <li>EfficientNet COVID-19 detection</li>
+      <li>Skin lesion classifier · HAM10000</li>
+      <li>Brain tumour MRI · multi-class</li>
+      <li>Multi-label chest X-ray · 14 conditions</li>
+    </ul>
+    <h3>Stack</h3>
+    <ul>
+      <li>MC Dropout uncertainty · 20 passes</li>
+      <li>Grad-CAM RGBA heatmaps on canvas</li>
+      <li>FastAPI + PyTorch · Apache proxy</li>
+    </ul>
+    <div class="disclaimer">⚠️ Research tool. Not for clinical use without professional oversight. All analyses require clinical correlation.</div>
+  </div>
+  </div></div>
+</div></div>
+
+</div><!-- /scroll-area -->
+</div><!-- /app -->
+
+<script>
+const API = '/scanlab-api/v2';
+let modelsData = {}, selectedModels = new Set();
+let currentFile = null, allResults = {}, layers = {};
+let activeDetailModel = null, originalImg = null;
+let probChart = null, batchData = [];
+let chartModel = null, chartTime = null;
+
+const TINTS = [[99,102,241],[6,182,212],[34,197,94],[245,158,11],[236,72,153]];
+
+/* ── Status ── */
+async function checkStatus(){
+  try{
+    const d = await fetch(API+'/health').then(r=>r.json());
+    if(d.status==='ok'){
+      document.getElementById('status-dot').classList.add('online');
+      document.getElementById('status-text').textContent = d.models_loaded+' models';
+    }
+  }catch{
+    document.getElementById('status-text').textContent = 'Offline';
+    document.getElementById('status-dot').style.background = 'var(--red)';
+  }
+}
+
+/* ── Nav ── */
+document.querySelectorAll('.nav-tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-page').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('tab-'+t.dataset.tab).classList.add('active');
+    if(t.dataset.tab==='models') renderCatalogue();
+    if(t.dataset.tab==='analytics') loadAnalytics();
+  });
+});
+
+/* ── Models ── */
+async function loadModels(){
+  try{ modelsData = await fetch(API+'/models').then(r=>r.json()); renderModelGrid(); }
+  catch(e){ console.error(e); }
+}
+function renderModelGrid(){
+  const g = document.getElementById('model-grid');
+  g.innerHTML = '';
+  Object.entries(modelsData).forEach(([k,m],i)=>{
+    const auc = ((m.metrics.auc||m.metrics.mean_auc||0)*100).toFixed(0);
+    const d = document.createElement('div');
+    d.className = 'mc'+(selectedModels.has(k)?' checked':'');
+    const [r,g2,b] = TINTS[i%TINTS.length];
+    d.innerHTML = `<div class="mc-auc">${auc}%</div>
+      <div class="mc-name">${m.name}</div>
+      <div class="mc-sub">${m.backbone}</div>
+      <div class="mc-tick">✓</div>`;
+    d.onclick = ()=>{ selectedModels.has(k)?selectedModels.delete(k):selectedModels.add(k); d.classList.toggle('checked'); updateCount(); updateRunBtn(); };
+    g.appendChild(d);
+  });
+}
+function updateCount(){
+  const n=selectedModels.size;
+  document.getElementById('select-count').textContent = n===0?'None selected':n===1?'1 selected':`${n} selected`;
+}
+function updateRunBtn(){
+  document.getElementById('run-btn').disabled = !(selectedModels.size>0&&currentFile);
+}
+
+/* ── File ── */
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])setFile(e.dataTransfer.files[0])});
+document.getElementById('file-input').addEventListener('change',e=>{if(e.target.files[0])setFile(e.target.files[0])});
+function setFile(f){
+  currentFile=f;
+  const img=document.getElementById('preview-img');
+  img.src=URL.createObjectURL(f); img.style.display='block';
+  updateRunBtn();
+}
+
+/* ── Run ── */
+async function runAnalysis(){
+  if(!currentFile||!selectedModels.size) return;
+  document.getElementById('run-btn').disabled=true;
+  document.getElementById('results-wrap').style.display='none';
+  const loading=document.getElementById('loading');
+  loading.classList.add('active');
+  allResults={}; layers={}; originalImg=null;
+
+  const models=[...selectedModels];
+  for(let i=0;i<models.length;i++){
+    const mk=models[i];
+    document.getElementById('loading-model').textContent = `${modelsData[mk]?.name||mk} (${i+1}/${models.length})`;
+    try{
+      const fd=new FormData(); fd.append('file',currentFile); fd.append('model_name',mk);
+      const r=await fetch(API+'/predict',{method:'POST',body:fd});
+      allResults[mk] = r.ok ? await r.json() : {error:await r.text()};
+    }catch(e){ allResults[mk]={error:e.message}; }
+  }
+  loading.classList.remove('active');
+  document.getElementById('run-btn').disabled=false;
+  await showResults();
+}
+
+/* ── Show results ── */
+async function showResults(){
+  const wrap=document.getElementById('results-wrap');
+  wrap.style.display='flex';
+  wrap.style.flexDirection='column';
+  wrap.style.gap='12px';
+
+  const models=Object.keys(allResults);
+  const first=allResults[models[0]];
+  const pos = first&&!first.error&&isPositive(first.prediction);
+
+  // Verdict banner
+  const vb=document.getElementById('verdict-banner');
+  vb.className='verdict-banner '+(pos?'positive':'negative');
+  document.getElementById('verdict-icon').textContent=pos?'⚠️':'✅';
+  document.getElementById('verdict-pred').textContent=first?.prediction||'Complete';
+  document.getElementById('verdict-pred').style.color=pos?'var(--red)':'var(--green)';
+  document.getElementById('verdict-sub').textContent=
+    models.length>1?`${models.length} models analyzed · see layers below`:
+    `Confidence: ${first&&!first.error?Math.round(first.confidence*100)+'%':'—'}`;
+
+  const good=models.filter(m=>!allResults[m].error);
+  await buildLayers(good);
+  renderLayerControls(good);
+  drawComposite();
+  renderDetailTabs(models);
+  activeDetailModel=models[0];
+  renderDetailCard(models[0]);
+}
+
+async function buildLayers(list){
+  for(let i=0;i<list.length;i++){
+    const mk=list[i], res=allResults[mk];
+    const img=new Image();
+    await new Promise(r=>{img.onload=r;img.onerror=r;img.src='data:image/png;base64,'+(res.heatmap_b64||res.gradcam_b64);});
+    if(i===0&&res.original_b64){
+      originalImg=new Image();
+      await new Promise(r=>{originalImg.onload=r;originalImg.src='data:image/jpeg;base64,'+res.original_b64;});
+    }
+    layers[mk]={opacity:Math.round((res.confidence||0)*80),visible:true,color:TINTS[i%TINTS.length],img,idx:i};
+  }
+  if(!originalImg&&currentFile){
+    originalImg=new Image();
+    await new Promise(r=>{originalImg.onload=r;originalImg.src=URL.createObjectURL(currentFile);});
+  }
+}
+
+function renderLayerControls(list){
+  const c=document.getElementById('layer-controls');
+  c.innerHTML='';
+  list.forEach((mk,i)=>{
+    const res=allResults[mk], layer=layers[mk];
+    const [r,g,b]=layer.color;
+    const conf=Math.round((res.confidence||0)*100);
+    const row=document.createElement('div');
+    row.className='layer-row';
+    row.innerHTML=`
+      <div class="layer-swatch tint-${i%5}" style="background:rgb(${r},${g},${b})"></div>
+      <div class="layer-info">
+        <div class="layer-name">${modelsData[mk]?.name||mk}</div>
+        <div class="layer-pred">${res.prediction||'—'} · ${conf}%</div>
+        <div class="layer-slider-wrap">
+          <input type="range" class="layer-slider" id="sl-${mk}" min="0" max="100" value="${layer.opacity}"
+            style="--pct:${layer.opacity}%"
+            oninput="setLayerOp('${mk}',this.value)">
+          <span class="layer-pct" id="pct-${mk}">${layer.opacity}%</span>
+        </div>
+      </div>
+      <span class="vis-btn" id="vis-${mk}" onclick="toggleVis('${mk}')">👁</span>`;
+    c.appendChild(row);
+  });
+}
+
+function setLayerOp(mk,v){
+  layers[mk].opacity=parseInt(v);
+  document.getElementById(`pct-${mk}`).textContent=v+'%';
+  document.getElementById(`sl-${mk}`).style.setProperty('--pct',v+'%');
+  drawComposite();
+}
+function toggleVis(mk){
+  layers[mk].visible=!layers[mk].visible;
+  document.getElementById(`vis-${mk}`).classList.toggle('off',!layers[mk].visible);
+  drawComposite();
+}
+function resetLayerOpacities(){
+  Object.keys(layers).forEach(mk=>{
+    const op=Math.round((allResults[mk]?.confidence||0)*80);
+    layers[mk].opacity=op;
+    const sl=document.getElementById(`sl-${mk}`);
+    if(sl){sl.value=op;sl.style.setProperty('--pct',op+'%');}
+    const pt=document.getElementById(`pct-${mk}`);
+    if(pt) pt.textContent=op+'%';
+  });
+  drawComposite();
+}
+
+function drawComposite(){
+  const canvas=document.getElementById('composite-canvas');
+  const ctx=canvas.getContext('2d');
+  const W=400,H=400;
+  canvas.width=W; canvas.height=H;
+  if(originalImg&&originalImg.complete&&originalImg.naturalWidth){
+    ctx.filter='grayscale(1) brightness(.85)'; ctx.drawImage(originalImg,0,0,W,H); ctx.filter='none';
+  } else { ctx.fillStyle='#111'; ctx.fillRect(0,0,W,H); }
+  Object.entries(layers).forEach(([mk,l])=>{
+    if(!l.visible||l.opacity===0||!l.img.complete||!l.img.naturalWidth) return;
+    const [r,g,b]=l.color;
+    const off=document.createElement('canvas'); off.width=W; off.height=H;
+    const oc=off.getContext('2d');
+    oc.drawImage(l.img,0,0,W,H);
+    oc.globalCompositeOperation='multiply';
+    oc.fillStyle=`rgb(${r},${g},${b})`; oc.fillRect(0,0,W,H);
+    ctx.globalAlpha=l.opacity/100;
+    ctx.globalCompositeOperation='screen';
+    ctx.drawImage(off,0,0);
+    ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+  });
+}
+
+/* ── Detail tabs ── */
+function renderDetailTabs(models){
+  const sw=document.getElementById('model-tabs'); sw.innerHTML='';
+  models.forEach((mk,i)=>{
+    const r=allResults[mk];
+    const t=document.createElement('div');
+    t.className='mtab'+(i===0?' active':'');
+    t.innerHTML=`<span class="mt-model">${modelsData[mk]?.name||mk}</span><span class="mt-pred">${r?.prediction||'Error'}</span>`;
+    t.onclick=()=>{ document.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); activeDetailModel=mk; renderDetailCard(mk); };
+    sw.appendChild(t);
+  });
+}
+
+function renderDetailCard(mk){
+  const r=allResults[mk];
+  const c=document.getElementById('result-detail');
+  if(!r||r.error){ c.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">${r?.error||'No result'}</div></div>`; return; }
+  const conf=Math.round(r.confidence*100);
+  const unc=(r.uncertainty*100).toFixed(1);
+  const pos=isPositive(r.prediction);
+  const color=pos?'var(--red)':'var(--green)';
+
+  c.innerHTML=`
+    <div class="detail-card">
+      <div class="conf-block">
+        <div class="conf-ring-wrap">
+          ${drawRing(conf,pos)}
+        </div>
+        <div class="conf-meta">
+          <div class="conf-pred" style="color:${color}">${r.prediction}</div>
+          <div class="conf-unc">±${unc}% · MC × ${r.mc_samples||20}</div>
+          ${r.icd10_code?`<div class="conf-icd">${r.icd10_code} ${r.icd10_desc||''}</div>`:''}
+        </div>
+      </div>
+      <div class="clinical-block">${genClinical(r)}</div>
+      ${r.top_features?.length?`<div class="features-block">${r.top_features.map(f=>`<span class="feat-tag">${f}</span>`).join('')}</div>`:''}
+      <div class="prob-block">
+        <div class="block-label">Probability distribution</div>
+        <canvas id="prob-chart-${mk}" height="100"></canvas>
+      </div>
+    </div>`;
+
+  if(r.probabilities){
+    if(probChart) probChart.destroy();
+    const labels=Object.keys(r.probabilities);
+    const values=Object.values(r.probabilities).map(v=>+(v*100).toFixed(1));
+    probChart=new Chart(document.getElementById(`prob-chart-${mk}`),{
+      type:'bar',
+      data:{labels,datasets:[{data:values,
+        backgroundColor:values.map(v=>v>50?'rgba(99,102,241,.8)':v>20?'rgba(99,102,241,.45)':'rgba(99,102,241,.2)'),
+        borderRadius:4,borderWidth:0}]},
+      options:{indexAxis:'y',responsive:true,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{max:100,grid:{color:'rgba(255,255,255,.06)'},ticks:{color:'#71717a',callback:v=>v+'%'}},
+          y:{grid:{display:false},ticks:{color:'#a1a1aa',font:{family:'Inter',size:11}}}
+        }}
+    });
+  }
+}
+
+function drawRing(pct, pos){
+  const r=34,cx=44,cy=44,circ=2*Math.PI*r;
+  const dash=circ*pct/100, gap=circ-dash;
+  const color=pos?'#ef4444':'#22c55e';
+  return `<svg width="88" height="88" viewBox="0 0 88 88">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="6"
+      stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${circ*.25}" stroke-linecap="round"/>
+    <text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle"
+      fill="${color}" font-size="16" font-weight="700" font-family="JetBrains Mono,monospace">${pct}%</text>
+  </svg>
+  <div class="conf-ring-sub" style="text-align:center;font-size:9px;color:var(--text3);margin-top:2px">CONF</div>`;
+}
+
+function isPositive(p){ return p&&!['Normal','No Tumor','Benign','Negative'].some(n=>p.includes(n)); }
+function genClinical(r){
+  const conf=Math.round(r.confidence*100), unc=(r.uncertainty*100).toFixed(1);
+  return isPositive(r.prediction)
+    ?`Imaging features consistent with <strong>${r.prediction}</strong> at <strong>${conf}%</strong> confidence (±${unc}% uncertainty). Activation regions highlighted in overlay. <em>Clinical correlation required.</em>`
+    :`No significant pathological features detected. Classification: <strong>${r.prediction}</strong> at <strong>${conf}%</strong> confidence. Routine follow-up per protocol.`;
+}
+
+function resetForm(){
+  currentFile=null; allResults={}; layers={}; originalImg=null;
+  document.getElementById('preview-img').style.display='none';
+  document.getElementById('file-input').value='';
+  document.getElementById('results-wrap').style.display='none';
+  document.getElementById('run-btn').disabled=true;
+}
+
+/* ── Catalogue ── */
+function renderCatalogue(){
+  const g=document.getElementById('model-detail-grid'); g.innerHTML='';
+  Object.entries(modelsData).forEach(([k,m])=>{
+    const auc=m.metrics.auc||m.metrics.mean_auc||0;
+    const d=document.createElement('div'); d.className='mdc';
+    d.innerHTML=`
+      <div class="mdc-header">
+        <div><div class="mdc-name">${m.name}</div><div class="mdc-ver">v${m.version}</div></div>
+      </div>
+      <div class="mdc-desc">${m.description}</div>
+      <div class="metrics-row">
+        <div class="metric-box"><div class="metric-val">${(auc*100).toFixed(1)}%</div><div class="metric-lbl">AUC</div></div>
+        ${m.metrics.sensitivity?`<div class="metric-box"><div class="metric-val">${(m.metrics.sensitivity*100).toFixed(1)}%</div><div class="metric-lbl">Sens</div></div>`:''}
+        ${m.metrics.specificity?`<div class="metric-box"><div class="metric-val">${(m.metrics.specificity*100).toFixed(1)}%</div><div class="metric-lbl">Spec</div></div>`:''}
+        ${m.metrics.f1?`<div class="metric-box"><div class="metric-val">${(m.metrics.f1*100).toFixed(1)}%</div><div class="metric-lbl">F1</div></div>`:''}
+      </div>
+      <div class="mdc-classes">${m.classes.join(' · ')}</div>
+      <button class="use-btn" onclick="activateModel('${k}')">Select →</button>`;
+    g.appendChild(d);
+  });
+}
+function activateModel(k){ selectedModels.clear(); selectedModels.add(k); renderModelGrid(); updateCount(); document.querySelector('[data-tab=diagnose]').click(); }
+
+/* ── Batch ── */
+function handleBatch(e){ if(e.target.files.length) runBatch(e.target.files); }
+async function runBatch(files){
+  const mk=[...selectedModels][0]||Object.keys(modelsData)[0]; if(!mk) return;
+  const fd=new FormData(); for(const f of files) fd.append('files',f); fd.append('model_name',mk);
+  document.getElementById('batch-progress').style.display='block';
+  document.getElementById('batch-results').style.display='none';
+  document.getElementById('batch-fill').style.width='0%';
+  try{ const d=await fetch(API+'/predict/batch',{method:'POST',body:fd}).then(r=>r.json()); pollBatch(d.job_id,d.total); }
+  catch(e){ alert('Batch error: '+e.message); }
+}
+function pollBatch(jobId){
+  const iv=setInterval(async()=>{
+    const d=await fetch(API+'/batch/'+jobId).then(r=>r.json());
+    document.getElementById('batch-fill').style.width=Math.round(d.done/d.total*100)+'%';
+    document.getElementById('batch-status').textContent=`${d.done}/${d.total} processed`;
+    if(d.status==='complete'){ clearInterval(iv); showBatchResults(d.results); }
+  },2000);
+}
+function showBatchResults(results){
+  batchData=results; document.getElementById('batch-results').style.display='block';
+  document.getElementById('batch-tbody').innerHTML=results.map(r=>`<tr>
+    <td>${r.filename||'—'}</td>
+    <td style="color:${isPositive(r.prediction)?'var(--red)':'var(--green)'};font-weight:600">${r.prediction||r.error||'—'}</td>
+    <td style="font-family:var(--mono)">${r.confidence?(r.confidence*100).toFixed(1)+'%':'—'}</td>
+    <td style="font-family:var(--mono);font-size:10px">${r.icd10_code||'—'}</td></tr>`).join('');
+}
+function exportCSV(){
+  if(!batchData.length) return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['Filename,Prediction,Confidence,ICD-10\n'+batchData.map(r=>`"${r.filename}","${r.prediction}",${r.confidence},"${r.icd10_code||''}"`).join('\n')],{type:'text/csv'}));
+  a.download='scanlab-batch.csv'; a.click();
+}
+
+/* ── Analytics ── */
+async function loadAnalytics(){
+  try{
+    const d=await fetch(API+'/analytics').then(r=>r.json());
+    document.getElementById('stat-grid').innerHTML=`
+      <div class="stat-card"><div class="stat-num">${d.total_predictions}</div><div class="stat-lbl">Predictions</div></div>
+      <div class="stat-card"><div class="stat-num">${d.estimated_hours_saved}h</div><div class="stat-lbl">Hours Saved</div></div>
+      <div class="stat-card"><div class="stat-num">$${(d.cost_savings_usd||0).toLocaleString()}</div><div class="stat-lbl">Est. Savings</div></div>
+      <div class="stat-card"><div class="stat-num">${Object.keys(d.by_model||{}).length}</div><div class="stat-lbl">Models</div></div>`;
+    const mk=Object.keys(d.by_model||{});
+    const accent=['rgba(99,102,241,.8)','rgba(6,182,212,.8)','rgba(34,197,94,.8)','rgba(245,158,11,.8)','rgba(236,72,153,.8)'];
+    if(chartModel) chartModel.destroy();
+    chartModel=new Chart(document.getElementById('chart-model'),{type:'doughnut',data:{labels:mk,datasets:[{data:mk.map(m=>d.by_model[m].count),backgroundColor:accent,borderWidth:0}]},options:{plugins:{legend:{labels:{color:'#a1a1aa',font:{family:'Inter'}}}}}});
+    if(chartTime) chartTime.destroy();
+    chartTime=new Chart(document.getElementById('chart-time'),{type:'bar',data:{labels:mk,datasets:[{data:mk.map(m=>d.by_model[m].avg_processing_ms),backgroundColor:accent,borderRadius:4,borderWidth:0}]},options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#71717a'}},x:{grid:{display:false},ticks:{color:'#a1a1aa',maxRotation:20}}}}});
+  }catch(e){console.error(e);}
+}
+
+/* ── Print ── */
+function printReport(){
+  if(!activeDetailModel||!allResults[activeDetailModel]?.prediction) return;
+  const r=allResults[activeDetailModel];
+  const canvas=document.getElementById('composite-canvas');
+  const img=canvas?canvas.toDataURL('image/jpeg',.85):'';
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>ScanLab Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>body{font-family:'Inter',sans-serif;padding:40px;max-width:700px;margin:0 auto;color:#111;font-size:13px}h1{font-size:22px;font-weight:700;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}table{border-collapse:collapse;width:100%;margin:14px 0}td,th{border:1px solid #e5e7eb;padding:8px 10px;text-align:left}th{background:#f9fafb;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.8px}.disc{color:#9ca3af;font-size:11px;border-top:1px solid #e5e7eb;margin-top:20px;padding-top:12px}</style></head>
+  <body><h1>🩻 ScanLab v2 — Diagnostic Report</h1>
+  <p style="color:#6b7280">${new Date().toLocaleString()} · ${modelsData[r.model]?.name||r.model}</p>
+  <table><tr><th>Parameter</th><th>Result</th></tr>
+  <tr><td>Prediction</td><td><strong>${r.prediction}</strong></td></tr>
+  <tr><td>Confidence</td><td>${(r.confidence*100).toFixed(1)}%</td></tr>
+  <tr><td>Uncertainty</td><td>±${(r.uncertainty*100).toFixed(1)}% (MC Dropout)</td></tr>
+  ${r.icd10_code?`<tr><td>ICD-10</td><td>${r.icd10_code} ${r.icd10_desc||''}</td></tr>`:''}
+  <tr><td>Key Features</td><td>${(r.top_features||[]).join(', ')}</td></tr></table>
+  ${img?`<h3>Activation Map</h3><img src="${img}" style="max-width:100%;border-radius:8px;border:1px solid #e5e7eb">`:''}
+  <div class="disc">⚠️ Research tool only. Not for clinical use without professional oversight. hub.stabilarity.com</div>
+  </body></html>`);
+  w.document.close(); w.print();
+}
+
+/* ── i18n ── */
+function toggleLang(){
+  const ua=document.getElementById('lang-btn').textContent.includes('🇺🇦');
+  document.getElementById('lang-btn').textContent=ua?'🇬🇧':'🇺🇦';
+  document.getElementById('drop-title').textContent=ua?'Drop specimen here':'Завантажте зразок';
+  document.getElementById('drop-sub').textContent=ua?'X-ray · MRI · Dermoscopy':'Рентген · МРТ · Дерматоскопія';
+  document.getElementById('drop-btn-lbl').textContent=ua?'Choose file':'Обрати файл';
+  document.getElementById('run-label').textContent=ua?'Run Analysis':'Запустити аналіз';
+  document.getElementById('loading-label').textContent=ua?'Analyzing…':'Аналізую…';
+}
+
+/* ── Init ── */
+checkStatus(); loadModels(); loadSamples(); setInterval(checkStatus,30000);
+
+/* ── Sample Images ── */
+async function loadSamples(){
+  try{
+    const d=await fetch(API+'/samples').then(r=>r.json());
+    window._sampleData=d;
+  }catch(e){console.error('samples',e);}
+}
+function updateSampleButtons(){
+  const card=document.getElementById('sample-card');
+  const container=document.getElementById('sample-buttons');
+  if(!selectedModels.size){card.style.display='none';return;}
+  card.style.display='block';
+  container.innerHTML='';
+  const sd=window._sampleData||{};
+  [...selectedModels].forEach(mk=>{
+    const samples=sd[mk]||[];
+    samples.forEach(s=>{
+      const btn=document.createElement('button');
+      btn.className='toolbar-btn';
+      btn.textContent=s.label;
+      btn.onclick=()=>loadSampleUrl(s.url);
+      container.appendChild(btn);
+    });
+  });
+  if(!container.children.length) card.style.display='none';
+}
+async function loadSampleUrl(url){
+  try{
+    const resp=await fetch(url);
+    const blob=await resp.blob();
+    const f=new File([blob],'sample.jpg',{type:blob.type||'image/jpeg'});
+    setFile(f);
+  }catch(e){alert('Failed to load sample: '+e.message);}
+}
+
+/* ── Tattoo ID ── */
+let tattooFile=null;
+const tdz=document.getElementById('tattoo-drop-zone');
+if(tdz){
+  tdz.addEventListener('dragover',e=>{e.preventDefault();tdz.classList.add('over');});
+  tdz.addEventListener('dragleave',()=>tdz.classList.remove('over'));
+  tdz.addEventListener('drop',e=>{e.preventDefault();tdz.classList.remove('over');if(e.dataTransfer.files[0])setTattooFile(e.dataTransfer.files[0]);});
+  document.getElementById('tattoo-file-input').addEventListener('change',e=>{if(e.target.files[0])setTattooFile(e.target.files[0]);});
+}
+function setTattooFile(f){
+  tattooFile=f;
+  const img=document.getElementById('tattoo-preview');
+  img.src=URL.createObjectURL(f);img.style.display='block';
+  document.getElementById('tattoo-image-stats').style.display='block';
+  document.getElementById('tattoo-overlay-stats').innerHTML='';
+  document.getElementById('tattoo-run-btn').disabled=false;
+}
+async function loadTattooSample(){
+  const sd=window._sampleData||{};
+  const samples=sd.tattoo||[{url:'/scanlab-api/v2/samples/static/tattoo_sample_anchor.jpg'}];
+  const url=samples[0].url;
+  try{
+    const resp=await fetch(url,{mode:'cors',credentials:'omit'});
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    const blob=await resp.blob();
+    const f=new File([blob],'tattoo-sample.jpg',{type:'image/jpeg'});
+    setTattooFile(f);
+    document.getElementById('tattoo-run-btn').disabled=false;
+  }catch(e){
+    // fallback: set via img src and create synthetic blob
+    try{
+      const r2=await fetch('/scanlab-api/v2/samples/static/tattoo_sample_anchor.jpg');
+      const b2=await r2.blob();
+      setTattooFile(new File([b2],'tattoo-sample.jpg',{type:'image/jpeg'}));
+      document.getElementById('tattoo-run-btn').disabled=false;
+    }catch(e2){alert('Failed to load sample: '+e2.message);}
+  }
+}
+async function loadTattooSampleUrl(url){
+  return loadTattooSample();
+}
+async function runTattooAnalysis(){
+  if(!tattooFile)return;
+  document.getElementById('tattoo-run-btn').disabled=true;
+  document.getElementById('tattoo-loading').classList.add('active');
+  document.getElementById('tattoo-results').style.display='none';
+  try{
+    const fd=new FormData();fd.append('file',tattooFile);
+    const r=await fetch(API+'/tattoo/analyze',{method:'POST',body:fd}).then(r=>r.json());
+    showTattooResults(r);
+  }catch(e){alert('Error: '+e.message);}
+  document.getElementById('tattoo-loading').classList.remove('active');
+  document.getElementById('tattoo-run-btn').disabled=false;
+}
+let _lastTattooResult=null;
+function showTattooResults(r){
+  _lastTattooResult=r;
+  const threshold=parseFloat(document.getElementById('tattoo-threshold').value)||0.55;
+  document.getElementById('tattoo-results').style.display='block';
+  document.getElementById('tattoo-report-wrap').style.display='block';
+
+  // Column 1: image preview + overlay stats
+  const imgStats=document.getElementById('tattoo-image-stats');
+  imgStats.style.display='block';
+  const style=(r.features.estimated_style||r.features.style||'unknown');
+  const edgePct=(r.features.edge_density*100).toFixed(1);
+  const texture=r.features.texture_complexity;
+  document.getElementById('tattoo-overlay-stats').innerHTML=
+    '<span class="tattoo-badge">'+style+'</span>'+
+    '<div style="margin-top:6px;font-size:11px"><strong>Edge density:</strong>'+
+    '<div style="background:#fff;border:1px solid #ccc;height:12px;border-radius:0;margin-top:2px"><div style="background:#000;height:100%;width:'+edgePct+'%;border-radius:0"></div></div>'+
+    '<span style="font-size:10px">'+edgePct+'%</span></div>'+
+    '<div style="margin-top:4px;font-size:11px"><strong>Texture:</strong>'+
+    '<div style="background:#fff;border:1px solid #ccc;height:12px;border-radius:0;margin-top:2px"><div style="background:#000;height:100%;width:'+Math.min(texture,100)+'%;border-radius:0"></div></div>'+
+    '<span style="font-size:10px">'+texture+'</span></div>';
+
+  // Column 2: Feature Report
+  const fb=document.getElementById('tattoo-features-body');
+  const swatches=r.hex_colors.map(c=>
+    '<div style="text-align:center"><div class="tattoo-swatch" style="background:'+c+'"></div><div style="font-size:9px;font-family:var(--mono);margin-top:2px">'+c+'</div></div>'
+  ).join('');
+  const region=(r.features.estimated_body_region||r.features.body_region_estimate||'Unknown');
+  const colorDiv=r.features.color_diversity!=null?(r.features.color_diversity*100).toFixed(0)+'%':'N/A';
+
+  // Confidence
+  let confidence='Low confidence (poor photo quality)';
+  if(r.features.edge_density>0.3&&r.features.texture_complexity>30) confidence='High confidence';
+  else if(r.features.edge_density>0.15) confidence='Medium confidence';
+
+  fb.innerHTML=
+    '<div style="margin-bottom:10px"><strong style="font-size:12px">Color Palette</strong><div style="display:flex;gap:8px;margin-top:6px">'+swatches+'</div></div>'+
+    '<strong style="font-size:12px">Style Analysis</strong>'+
+    '<table class="tattoo-table" style="margin-top:6px"><tr><th>Property</th><th>Value</th></tr>'+
+    '<tr><td>Style</td><td>'+style+'</td></tr>'+
+    '<tr><td>Edge Density</td><td>'+edgePct+'%</td></tr>'+
+    '<tr><td>Texture Complexity</td><td>'+texture+'</td></tr>'+
+    '<tr><td>Color Diversity</td><td>'+colorDiv+'</td></tr>'+
+    '<tr><td>Est. Body Region</td><td>'+region+'</td></tr></table>'+
+    '<div style="margin-top:10px"><strong style="font-size:12px">Visual Fingerprint</strong><div style="margin-top:4px">'+
+    '<span class="tattoo-fingerprint">'+r.fingerprint.substring(0,16)+'</span> '+
+    '<button class="toolbar-btn" style="font-size:10px;padding:3px 8px" onclick="navigator.clipboard.writeText(\''+r.fingerprint+'\')">Copy</button></div></div>'+
+    '<div class="tattoo-confidence">'+confidence+'</div>';
+
+  // Column 3: Matches
+  const mb=document.getElementById('tattoo-matches-body');
+  const filtered=(r.matches||[]).filter(m=>m.similarity>=threshold).sort((a,b)=>b.similarity-a.similarity);
+  if(filtered.length){
+    mb.innerHTML=filtered.map(m=>{
+      const pct=Math.round(m.similarity*100);
+      return '<div class="tattoo-match-card">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<span class="tattoo-badge">SKETCH '+m.sketch_number+'</span>'+
+        '<span style="font-size:14px;font-weight:700">'+pct+'%</span></div>'+
+        '<div class="tattoo-sim-bar"><div class="tattoo-sim-fill" style="width:'+pct+'%"></div></div>'+
+        '<div style="font-size:11px;line-height:1.7">'+
+        '<div>Category: '+m.category+'</div>'+
+        '<div>Body part: '+m.body_part+'</div>'+
+        '<div>Description: '+m.description+'</div>'+
+        (m.linked_sketches&&m.linked_sketches.length?'<div>Linked: '+m.linked_sketches.join(', ')+' (same person -- '+( m.linked_sketches.length+1)+' tattoos)</div>':'')+
+        '</div>'+
+        '<button class="toolbar-btn" style="margin-top:6px;font-size:10px" onclick="document.getElementById(\'tattoo-filter-search\').value=\''+m.sketch_number+'\';browseTattooRegistry()">View in registry</button>'+
+        '</div>';
+    }).join('')+
+    '<div style="font-size:11px;color:var(--text3);margin-top:8px">Registry searched: '+r.registry_total+' records</div>'+
+    (filtered.length<(r.matches||[]).length?'<div style="font-size:11px;color:var(--text3)">'+(r.matches.length-filtered.length)+' match(es) below threshold</div>':
+    '<div style="font-size:11px;color:var(--text3)">No other matches above threshold</div>');
+  } else {
+    mb.innerHTML='<div style="font-size:12px;color:var(--text3);line-height:1.8">No matches found. This person may not be in the voluntary registry.<div style="margin-top:6px">Registry searched: '+r.registry_total+' records</div></div>';
+  }
+}
+
+function downloadTattooReport(){
+  const r=_lastTattooResult;if(!r)return;
+  const threshold=parseFloat(document.getElementById('tattoo-threshold').value)||0.55;
+  const now=new Date();
+  const ts=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const style=(r.features.estimated_style||r.features.style||'unknown');
+  const region=(r.features.estimated_body_region||r.features.body_region_estimate||'Unknown');
+  const edgePct=(r.features.edge_density*100).toFixed(1);
+  const colorDiv=r.features.color_diversity!=null?(r.features.color_diversity*100).toFixed(0)+'%':'N/A';
+  const filtered=(r.matches||[]).filter(m=>m.similarity>=threshold).sort((a,b)=>b.similarity-a.similarity);
+  let txt='STABILARITY SCANLAB -- TATTOO IDENTIFICATION REPORT\n';
+  txt+='Generated: '+ts+'\n';
+  txt+='Fingerprint: '+r.fingerprint+'\n\n';
+  txt+='FEATURES DETECTED:\n';
+  txt+='  Style: '+style+'\n';
+  txt+='  Edge Density: '+edgePct+'%\n';
+  txt+='  Texture: '+r.features.texture_complexity+'\n';
+  txt+='  Color Diversity: '+colorDiv+'\n';
+  txt+='  Est. Region: '+region+'\n';
+  txt+='  Colors: '+r.hex_colors.join(', ')+'\n\n';
+  txt+='REGISTRY SEARCH RESULTS:\n';
+  txt+='  Threshold: '+threshold+' | Records searched: '+r.registry_total+'\n';
+  if(filtered.length){
+    filtered.forEach(function(m,i){
+      txt+='  Match '+(i+1)+': '+m.sketch_number+' ('+Math.round(m.similarity*100)+'% similarity)\n';
+      txt+='    Category: '+m.category+'\n';
+      txt+='    Body part: '+m.body_part+'\n';
+      txt+='    Description: '+m.description+'\n';
+      if(m.linked_sketches&&m.linked_sketches.length) txt+='    Linked records: '+m.linked_sketches.join(', ')+'\n';
+    });
+  } else {
+    txt+='  No matches above threshold.\n';
+  }
+  txt+='\nDISCLAIMER: Candidate matches only. Final identification requires human verification.\nContact: contact@stabilarity.com\n';
+  const blob=new Blob([txt],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='scanlab-tattoo-report-'+ts.replace(/[: ]/g,'-')+'.txt';a.click();
+}
+async function browseTattooRegistry(){
+  const cat=document.getElementById('tattoo-filter-cat').value;
+  const loc=document.getElementById('tattoo-filter-loc').value;
+  const search=document.getElementById('tattoo-filter-search').value;
+  let url=API+'/tattoo/registry/browse?';
+  if(cat) url+='category='+encodeURIComponent(cat)+'&';
+  if(loc) url+='body_location='+encodeURIComponent(loc)+'&';
+  if(search) url+='search='+encodeURIComponent(search)+'&';
+  try{
+    const d=await fetch(url).then(r=>r.json());
+    const el=document.getElementById('tattoo-browse-results');
+    if(!d.results.length){el.innerHTML='<div style="color:var(--text3)">No records found.</div>';return;}
+    el.innerHTML='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">'+d.total+' record(s) found</div>'+
+      d.results.map(r=>'<div class="tattoo-registry-card">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:600;color:#000">'+r.sketch_number+'</span><span style="font-size:10px;color:var(--text3)">'+r.date_added+'</span></div>'+
+        '<div style="font-size:11px;color:#000;margin-top:2px">'+r.category+(r.type?' / '+r.type:'')+'</div>'+
+        '<div style="font-size:11px;color:var(--text2);margin-top:2px">'+r.body_location+' | '+r.body_part+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+r.description+'</div>'+
+        (r.linked_sketches&&r.linked_sketches.length?'<div style="margin-top:4px"><span class="tattoo-linked-badge">Linked records</span> '+r.linked_sketches.join(', ')+'</div>':'')+
+        '</div>').join('');
+  }catch(e){document.getElementById('tattoo-browse-results').innerHTML='<div style="color:var(--red)">Error: '+e.message+'</div>';}
+}
+
+/* ── Patch model selection to update sample buttons ── */
+const _origUpdateCount = updateCount;
+updateCount = function(){
+  _origUpdateCount();
+  updateSampleButtons();
+};
+
+/* ── Init samples ── */
+loadSamples();
+
+</script>
+</body>
+</html>
